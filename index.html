@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>IDL Bot — All-in-One Discord Bot</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Share+Tech+Mono&family=Heebo:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --c:#00e5ff; --c2:#00b4d8; --c3:#0077a8; --c4:#003d5c;
+  --g:#ffd000; --g2:#ffaa00; --g3:#cc8800; --g4:#7a5000;
+  --bg:#020509; --bg2:#040d14; --bg3:#071520; --bg4:#0a1e2e;
+  --panel:rgba(4,18,32,.9); --panel2:rgba(6,24,40,.95);
+  --border:rgba(0,229,255,.13); --border2:rgba(0,229,255,.25);
+  --border-g:rgba(255,208,0,.2);
+  --text:#d0eaf6; --muted:#4a7a94; --muted2:#6a9ab4;
+  --green:#00ff88; --red:#ff4466;
+  --hud:'Orbitron',monospace;
+  --mono:'Share Tech Mono',monospace;
+  --body:'Heebo',sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:var(--body);overflow-x:hidden;cursor:none}
+
+/* ══ CURSOR ══ */
+#cur{position:fixed;z-index:9999;pointer-events:none;width:10px;height:10px;border-radius:50%;background:var(--g);box-shadow:0 0 16px var(--g),0 0 40px rgba(255,208,0,.5);transform:translate(-50%,-50%);transition:transform .08s,width .2s,height .2s}
+#cur2{position:fixed;z-index:9998;pointer-events:none;width:36px;height:36px;border-radius:50%;border:1.5px solid var(--c);transform:translate(-50%,-50%);transition:left .1s,top .1s,transform .25s,border-color .2s;box-shadow:0 0 12px rgba(0,229,255,.25)}
+body.hovering #cur{transform:translate(-50%,-50%) scale(0)}
+body.hovering #cur2{transform:translate(-50%,-50%) scale(2.2);border-color:var(--g)}
+
+/* ══ SCANLINES ══ */
+body::before{content:'';position:fixed;inset:0;z-index:1;pointer-events:none;background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,.06) 3px,rgba(0,0,0,.06) 4px)}
+
+/* ══ CANVAS ══ */
+#cv{position:fixed;inset:0;z-index:0;pointer-events:none}
+
+/* ══ VIGNETTE ══ */
+body::after{content:'';position:fixed;inset:0;z-index:1;pointer-events:none;background:radial-gradient(ellipse 80% 80% at 50% 50%,transparent 40%,rgba(2,5,9,.7) 100%)}
+
+/* ══ NAV ══ */
+nav{position:fixed;top:0;width:100%;z-index:300;padding:0 3rem;height:58px;display:flex;align-items:center;justify-content:space-between;background:rgba(2,5,9,.88);backdrop-filter:blur(16px);border-bottom:1px solid var(--border)}
+nav::after{content:'';position:absolute;bottom:-1px;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent 0%,var(--c3) 20%,var(--c) 40%,var(--g) 60%,var(--c) 80%,transparent 100%);background-size:200% 100%;animation:nl 4s linear infinite}
+@keyframes nl{to{background-position:-200% 0}}
+.logo{font-family:var(--hud);font-weight:900;font-size:1.6rem;letter-spacing:.3em;position:relative;display:inline-block}
+.logo-text{background:linear-gradient(90deg,var(--c),var(--g),var(--c));background-size:200%;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:ls 3s linear infinite}
+@keyframes ls{to{background-position:-200% 0}}
+.logo-glow{position:absolute;inset:0;font-family:var(--hud);font-weight:900;font-size:1.6rem;letter-spacing:.3em;color:var(--c);filter:blur(10px);opacity:.35;animation:lg 2s ease-in-out infinite}
+@keyframes lg{0%,100%{opacity:.25}50%{opacity:.5}}
+.nav-links{display:flex;gap:2.2rem;list-style:none}
+.nav-links a{font-family:var(--hud);font-size:.58rem;letter-spacing:.22em;color:var(--muted);text-decoration:none;text-transform:uppercase;transition:color .3s;position:relative;padding-bottom:2px}
+.nav-links a::after{content:'';position:absolute;bottom:0;left:0;width:0;height:1px;background:linear-gradient(90deg,var(--c),var(--g));transition:width .3s}
+.nav-links a:hover{color:var(--c)}
+.nav-links a:hover::after{width:100%}
+.nav-right{display:flex;align-items:center;gap:1rem}
+.nav-status{display:flex;align-items:center;gap:.5rem;font-family:var(--mono);font-size:.72rem;color:var(--green)}
+.nav-dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);animation:dot 2s ease-in-out infinite}
+@keyframes dot{0%,100%{opacity:1}50%{opacity:.4}}
+.nav-invite{font-family:var(--hud);font-size:.58rem;font-weight:700;letter-spacing:.15em;padding:.45rem 1.2rem;background:linear-gradient(135deg,var(--g4),var(--g),var(--g2));color:var(--bg);border:none;cursor:pointer;text-decoration:none;clip-path:polygon(6px 0,100% 0,calc(100% - 6px) 100%,0 100%);transition:box-shadow .2s,transform .2s;box-shadow:0 0 14px rgba(255,208,0,.4)}
+.nav-invite:hover{transform:translateY(-1px);box-shadow:0 0 28px rgba(255,208,0,.6)}
+
+/* ══ HERO ══ */
+#hero{position:relative;z-index:2;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:5rem 2rem 4rem;text-align:center;overflow:hidden}
+.grid-bg{position:absolute;inset:0;pointer-events:none;background-image:linear-gradient(rgba(0,229,255,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(0,229,255,.035) 1px,transparent 1px);background-size:55px 55px;animation:gd 18s linear infinite}
+@keyframes gd{to{background-position:55px 55px}}
+.hero-corner{position:absolute;width:120px;height:120px;opacity:.3}
+.hero-corner.tl{top:80px;left:30px;border-top:1px solid var(--c);border-left:1px solid var(--c)}
+.hero-corner.tr{top:80px;right:30px;border-top:1px solid var(--g);border-right:1px solid var(--g)}
+.hero-corner.bl{bottom:40px;left:30px;border-bottom:1px solid var(--c);border-left:1px solid var(--c)}
+.hero-corner.br{bottom:40px;right:30px;border-bottom:1px solid var(--g);border-right:1px solid var(--g)}
+
+.hero-sys{font-family:var(--mono);font-size:.82rem;color:var(--c3);letter-spacing:.12em;margin-bottom:2.5rem;animation:fu .5s .1s both;display:flex;align-items:center;gap:.5rem;justify-content:center}
+.sys-blink{color:var(--c);animation:blink 1s step-end infinite}
+@keyframes blink{50%{opacity:0}}
+.hero-pre{font-family:var(--mono);font-size:.75rem;color:var(--g3);letter-spacing:.3em;text-transform:uppercase;margin-bottom:1rem;animation:fu .5s .15s both}
+
+.hero-title{font-family:var(--hud);font-weight:900;font-size:clamp(4rem,12vw,10rem);line-height:.88;letter-spacing:.04em;animation:fu .6s .2s both;position:relative}
+.ht-idl{display:block;color:var(--c);text-shadow:0 0 40px var(--c),0 0 80px rgba(0,229,255,.35),0 0 140px rgba(0,229,255,.12);animation:glitch 5s 2s infinite}
+.ht-bot{display:block;color:var(--g);text-shadow:0 0 40px var(--g),0 0 80px rgba(255,208,0,.35),0 0 140px rgba(255,208,0,.12)}
+@keyframes glitch{
+  0%,89%,100%{text-shadow:0 0 40px var(--c),0 0 80px rgba(0,229,255,.35)}
+  90%{text-shadow:-4px 0 var(--g),4px 0 #f0f,0 0 40px var(--c);transform:translate(-2px,0)}
+  91%{text-shadow:4px 0 var(--g),-4px 0 #0ff,0 0 40px var(--c);transform:translate(2px,0)}
+  92%{text-shadow:0 0 40px var(--c),0 0 80px rgba(0,229,255,.35);transform:translate(0,0)}
+}
+.hero-sub{font-family:var(--mono);font-size:.9rem;color:var(--muted2);margin-top:1.8rem;animation:fu .6s .4s both;letter-spacing:.06em;line-height:1.7;max-width:550px}
+.hero-sub .ac{color:var(--c)} .hero-sub .ag{color:var(--g)}
+
+.hero-stats{display:flex;gap:0;margin-top:3rem;animation:fu .6s .5s both;border:1px solid var(--border);background:var(--panel);overflow:hidden}
+.hstat{padding:1.2rem 2.5rem;text-align:center;border-left:1px solid var(--border);position:relative;transition:background .3s}
+.hstat:first-child{border-left:none}
+.hstat:hover{background:rgba(0,229,255,.04)}
+.hstat::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--c2),transparent);transform:scaleX(0);transition:transform .3s}
+.hstat:hover::after{transform:scaleX(1)}
+.hstat-num{font-family:var(--hud);font-size:1.6rem;font-weight:700;color:var(--g);text-shadow:0 0 16px var(--g2)}
+.hstat-lbl{font-family:var(--mono);font-size:.65rem;color:var(--muted);letter-spacing:.15em;margin-top:.3rem}
+
+.hero-cta{display:flex;gap:1.2rem;margin-top:2.5rem;animation:fu .6s .6s both;justify-content:center;flex-wrap:wrap}
+.btn-a{position:relative;font-family:var(--hud);font-size:.65rem;font-weight:700;letter-spacing:.2em;text-transform:uppercase;padding:1rem 2.8rem;border:none;cursor:pointer;background:linear-gradient(135deg,var(--g4),var(--g3),var(--g),var(--g2));color:var(--bg);text-decoration:none;clip-path:polygon(10px 0,100% 0,calc(100% - 10px) 100%,0 100%);box-shadow:0 0 24px rgba(255,208,0,.5),0 6px 24px rgba(0,0,0,.7);overflow:hidden;transition:transform .2s,box-shadow .2s}
+.btn-a::before{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent 20%,rgba(255,255,255,.4) 50%,transparent 80%);transform:translateX(-100%);transition:transform .6s}
+.btn-a:hover{transform:translateY(-3px);box-shadow:0 0 40px rgba(255,208,0,.7),0 8px 32px rgba(0,0,0,.8)}
+.btn-a:hover::before{transform:translateX(100%)}
+.btn-b{font-family:var(--hud);font-size:.65rem;font-weight:700;letter-spacing:.2em;text-transform:uppercase;padding:1rem 2.8rem;cursor:pointer;text-decoration:none;background:transparent;color:var(--c);clip-path:polygon(10px 0,100% 0,calc(100% - 10px) 100%,0 100%);border:1px solid var(--c3);box-shadow:0 0 12px rgba(0,229,255,.1) inset;transition:all .3s}
+.btn-b:hover{border-color:var(--c);box-shadow:0 0 30px rgba(0,229,255,.3) inset,0 0 20px rgba(0,229,255,.15);color:var(--c)}
+
+/* ══ SECTIONS ══ */
+.sec{position:relative;z-index:2;padding:6rem 2rem}
+.sec-inner{max-width:1240px;margin:0 auto}
+.hud-hdr{display:flex;align-items:flex-start;gap:1.5rem;margin-bottom:3.5rem}
+.hud-hdr-bar{width:3px;min-height:3rem;background:linear-gradient(to bottom,var(--g),var(--c),transparent);flex-shrink:0;margin-top:.3rem}
+.hud-hdr h2{font-family:var(--hud);font-size:clamp(.9rem,2.5vw,1.35rem);font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--c);text-shadow:0 0 18px rgba(0,229,255,.35)}
+.hud-hdr-sub{font-family:var(--mono);font-size:.72rem;color:var(--muted);margin-top:.4rem;letter-spacing:.1em}
+.hud-hdr-line{flex:1;height:1px;background:linear-gradient(90deg,var(--border2),transparent);margin-top:1.2rem}
+
+/* ══ FEATURES ══ */
+#features{background:radial-gradient(ellipse 90% 50% at 50% 0%,rgba(0,50,80,.18) 0%,transparent 60%)}
+.fg-wrap{display:grid;grid-template-columns:repeat(12,1fr);gap:1px;background:var(--border);border:1px solid var(--border);overflow:hidden}
+.fc{background:var(--panel);padding:2.2rem 1.8rem;position:relative;overflow:hidden;transition:background .3s;grid-column:span 3}
+.fc.c4{grid-column:span 4}
+.fc.c6{grid-column:span 6}
+.fc:hover{background:rgba(0,229,255,.045)}
+.fc::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--g),transparent);transform:scaleX(0);transform-origin:center;transition:transform .5s}
+.fc:hover::before{transform:scaleX(1)}
+.fc::after{content:'';position:absolute;bottom:0;right:0;width:28px;height:28px;border-bottom:1px solid rgba(0,229,255,.15);border-right:1px solid rgba(0,229,255,.15);pointer-events:none}
+.fc-icon{width:48px;height:48px;display:flex;align-items:center;justify-content:center;font-size:1.5rem;margin-bottom:1.3rem;position:relative}
+.fc-icon.t{background:rgba(0,229,255,.07);border:1px solid rgba(0,229,255,.2);box-shadow:0 0 20px rgba(0,229,255,.08) inset}
+.fc-icon.g{background:rgba(255,208,0,.07);border:1px solid rgba(255,208,0,.2);box-shadow:0 0 20px rgba(255,208,0,.08) inset}
+.fc-icon::before{content:'';position:absolute;inset:-1px;opacity:0;background:radial-gradient(circle,rgba(0,229,255,.15),transparent 70%);transition:opacity .3s}
+.fc:hover .fc-icon::before{opacity:1}
+.fc-title{font-family:var(--hud);font-size:.78rem;font-weight:700;letter-spacing:.14em;color:var(--c);margin-bottom:.7rem}
+.fc-desc{font-size:.86rem;color:var(--muted);line-height:1.75}
+.fc-desc strong{color:var(--muted2)}
+.fc-tag{display:inline-block;margin-top:1.2rem;font-family:var(--mono);font-size:.68rem;letter-spacing:.12em;color:var(--g);background:rgba(255,208,0,.07);border:1px solid rgba(255,208,0,.18);padding:.2rem .6rem}
+.fc-list{margin-top:.8rem;list-style:none;display:flex;flex-direction:column;gap:.35rem}
+.fc-list li{font-family:var(--mono);font-size:.76rem;color:var(--muted);display:flex;align-items:center;gap:.5rem}
+.fc-list li::before{content:'▸';color:var(--c3);font-size:.7rem}
+
+/* ══ COMMANDS ══ */
+#commands{background:radial-gradient(ellipse 70% 60% at 50% 50%,rgba(0,30,50,.3) 0%,transparent 65%)}
+.cmd-layout{display:grid;grid-template-columns:220px 1fr;gap:1px;background:var(--border);border:1px solid var(--border);height:560px}
+.cmd-sidebar{background:var(--panel);overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--c4) transparent}
+.cmd-sidebar::-webkit-scrollbar{width:3px}
+.cmd-sidebar::-webkit-scrollbar-thumb{background:var(--c4)}
+.cat-btn{display:flex;align-items:center;gap:.8rem;padding:.85rem 1.2rem;font-family:var(--mono);font-size:.75rem;letter-spacing:.08em;color:var(--muted);cursor:pointer;border:none;background:transparent;width:100%;text-align:right;border-left:3px solid transparent;transition:all .25s;border-bottom:1px solid rgba(0,229,255,.05)}
+.cat-btn .cat-icon{font-size:1rem;opacity:.7;transition:opacity .25s;flex-shrink:0}
+.cat-btn:hover{background:rgba(0,229,255,.04);color:var(--muted2)}
+.cat-btn.active{background:rgba(0,229,255,.06);color:var(--c);border-left-color:var(--c);border-right:none}
+.cat-btn.active .cat-icon{opacity:1}
+.cat-count{margin-right:auto;font-size:.62rem;color:var(--c4);background:rgba(0,229,255,.08);border:1px solid rgba(0,229,255,.15);padding:.1rem .4rem;border-radius:2px;font-family:var(--mono)}
+
+.cmd-main{background:var(--bg2);overflow-y:auto;display:flex;flex-direction:column;scrollbar-width:thin;scrollbar-color:var(--c4) transparent}
+.cmd-main::-webkit-scrollbar{width:3px}
+.cmd-main::-webkit-scrollbar-thumb{background:var(--c4)}
+.cmd-topbar{background:var(--bg3);padding:.7rem 1.4rem;display:flex;align-items:center;gap:.8rem;border-bottom:1px solid var(--border);flex-shrink:0;position:sticky;top:0;z-index:10}
+.tdots{display:flex;gap:.45rem}
+.tdot{width:10px;height:10px;border-radius:50%}
+.tdot:nth-child(1){background:#ff5f57} .tdot:nth-child(2){background:#ffbd2e} .tdot:nth-child(3){background:#28c840}
+.cmd-topbar-title{font-family:var(--mono);font-size:.72rem;color:var(--muted);letter-spacing:.12em;margin:0 auto}
+.cmd-count-badge{font-family:var(--mono);font-size:.65rem;color:var(--g);background:rgba(255,208,0,.07);border:1px solid rgba(255,208,0,.2);padding:.1rem .5rem}
+
+.cmd-list-inner{padding:.8rem 1rem;display:flex;flex-direction:column;gap:.4rem}
+.cmd-item{display:grid;grid-template-columns:22px 1fr auto;align-items:start;gap:1rem;padding:.9rem 1rem;border:1px solid transparent;transition:border-color .25s,background .25s;cursor:default}
+.cmd-item:hover{border-color:rgba(0,229,255,.12);background:rgba(0,229,255,.025)}
+.cmd-slash{font-family:var(--mono);font-size:.85rem;color:var(--g);opacity:.8;padding-top:1px}
+.cmd-info .cmd-name{font-family:var(--mono);font-size:.82rem;color:var(--c);font-weight:600}
+.cmd-info .cmd-args{color:var(--muted);font-size:.78rem}
+.cmd-info .cmd-desc{font-size:.8rem;color:var(--muted);line-height:1.5;margin-top:.25rem}
+.cmd-badge{font-family:var(--mono);font-size:.6rem;letter-spacing:.08em;padding:.18rem .5rem;border:1px solid;margin-top:.2rem;white-space:nowrap}
+.cb-new{color:var(--g);border-color:rgba(255,208,0,.3);background:rgba(255,208,0,.06)}
+.cb-hot{color:#ff4466;border-color:rgba(255,68,102,.3);background:rgba(255,68,102,.06)}
+.cb-ai{color:var(--c);border-color:rgba(0,229,255,.3);background:rgba(0,229,255,.06)}
+.cb-pro{color:#cc88ff;border-color:rgba(200,136,255,.3);background:rgba(200,136,255,.06)}
+
+/* ══ STATS ══ */
+#stats .metrics{display:grid;grid-template-columns:repeat(4,1fr) 2fr;gap:1px;background:var(--border);border:1px solid var(--border);overflow:hidden;margin-bottom:1px}
+.mp{background:var(--panel);padding:2rem 1.5rem;position:relative;overflow:hidden;transition:background .3s}
+.mp:hover{background:rgba(255,208,0,.03)}
+.mp-label{font-family:var(--mono);font-size:.66rem;letter-spacing:.18em;color:var(--muted);text-transform:uppercase;margin-bottom:.8rem;display:flex;align-items:center;gap:.5rem}
+.mp-label::before{content:'◈';color:var(--c3);font-size:.55rem}
+.mp-val{font-family:var(--hud);font-size:2.2rem;font-weight:700;color:var(--g);text-shadow:0 0 20px var(--g2);line-height:1}
+.mp-unit{font-size:.85rem;color:var(--g3);margin-left:.15rem}
+.mp-change{font-family:var(--mono);font-size:.68rem;margin-top:.6rem}
+.up{color:var(--green)} .stable{color:var(--c2)}
+.mp::after{content:'';position:absolute;bottom:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--c2),transparent);opacity:.3}
+
+.activity{background:var(--panel);padding:2rem 1.5rem;position:relative}
+.activity .mp-label{margin-bottom:1.3rem}
+.bars{display:flex;align-items:flex-end;gap:5px;height:90px}
+.bar{flex:1;border-radius:2px 2px 0 0;background:linear-gradient(to top,var(--c4),var(--c2),var(--c));opacity:.65;transform-origin:bottom;animation:bg .9s ease both;transition:opacity .3s}
+.bar:hover{opacity:1}
+@keyframes bg{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+.bar-day{font-family:var(--mono);font-size:.55rem;color:var(--muted);text-align:center;margin-top:.4rem}
+.bar-wrap{flex:1;display:flex;flex-direction:column;align-items:center}
+
+.second-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;background:var(--border);border:1px solid var(--border);border-top:none;overflow:hidden}
+.lang-panel{background:var(--panel);padding:1.8rem 1.5rem}
+.lang-title{font-family:var(--mono);font-size:.66rem;letter-spacing:.18em;color:var(--muted);text-transform:uppercase;margin-bottom:1.2rem;display:flex;align-items:center;gap:.5rem}
+.lang-title::before{content:'◈';color:var(--c3);font-size:.55rem}
+.lang-bar-row{display:flex;align-items:center;gap:.8rem;margin-bottom:.8rem}
+.lang-name{font-family:var(--mono);font-size:.72rem;color:var(--muted2);min-width:70px}
+.lang-track{flex:1;height:5px;background:rgba(0,229,255,.08);border-radius:2px;overflow:hidden}
+.lang-fill{height:100%;border-radius:2px;animation:lf .8s ease both}
+@keyframes lf{from{width:0}}
+.lang-fill.c{background:linear-gradient(90deg,var(--c3),var(--c))}
+.lang-fill.g{background:linear-gradient(90deg,var(--g4),var(--g))}
+.lang-pct{font-family:var(--mono);font-size:.68rem;color:var(--muted);min-width:30px;text-align:left}
+
+/* ══ SETUP ══ */
+#setup{background:radial-gradient(ellipse 80% 50% at 50% 100%,rgba(0,50,80,.2) 0%,transparent 60%)}
+.steps-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1.5rem}
+.step{position:relative;padding:2.2rem 1.8rem;background:var(--panel);border:1px solid var(--border);transition:border-color .3s,transform .3s,box-shadow .3s;overflow:hidden}
+.step::before{content:attr(data-n);font-family:var(--hud);font-size:4rem;font-weight:900;color:rgba(0,229,255,.05);position:absolute;top:.4rem;right:1rem;line-height:1;transition:color .3s}
+.step:hover{border-color:var(--c2);transform:translateY(-5px);box-shadow:0 12px 40px rgba(0,0,0,.5),0 0 30px rgba(0,229,255,.06)}
+.step:hover::before{color:rgba(0,229,255,.1)}
+.step-arrow{position:absolute;top:50%;right:-24px;transform:translateY(-50%);font-family:var(--hud);font-size:.7rem;color:var(--c3);z-index:5;display:none}
+.step-num{font-family:var(--hud);font-size:.6rem;letter-spacing:.22em;color:var(--g);margin-bottom:1.2rem;display:flex;align-items:center;gap:.6rem}
+.step-num::before{content:'';width:18px;height:1px;background:linear-gradient(90deg,transparent,var(--g))}
+.step h3{font-family:var(--hud);font-size:.82rem;letter-spacing:.1em;color:var(--text);margin-bottom:.7rem}
+.step p{font-size:.85rem;color:var(--muted);line-height:1.65;margin-bottom:.8rem}
+.step code{font-family:var(--mono);font-size:.76rem;color:var(--c);background:rgba(0,229,255,.05);border:1px solid rgba(0,229,255,.14);padding:.45rem .9rem;display:block;transition:border-color .3s}
+.step:hover code{border-color:rgba(0,229,255,.28)}
+
+/* ══ FOOTER ══ */
+footer{position:relative;z-index:2;border-top:1px solid var(--border);padding:2.5rem 3rem;background:var(--bg2)}
+.footer-inner{max-width:1240px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1.5rem}
+.footer-logo{font-family:var(--hud);font-weight:900;font-size:1.3rem;letter-spacing:.3em;color:var(--c);text-shadow:0 0 16px rgba(0,229,255,.35)}
+.footer-text{font-family:var(--mono);font-size:.7rem;color:var(--muted);letter-spacing:.1em;text-align:center}
+.footer-text span{color:var(--g)}
+.footer-links{display:flex;gap:2rem}
+.footer-links a{font-family:var(--mono);font-size:.72rem;letter-spacing:.12em;color:var(--muted);text-decoration:none;transition:color .3s,text-shadow .3s}
+.footer-links a:hover{color:var(--c);text-shadow:0 0 10px rgba(0,229,255,.4)}
+
+/* ══ REVEAL ══ */
+.r{opacity:0;transform:translateY(32px);transition:opacity .75s ease,transform .75s ease}
+.r.on{opacity:1;transform:translateY(0)}
+.r[data-d="1"]{transition-delay:.1s}
+.r[data-d="2"]{transition-delay:.2s}
+.r[data-d="3"]{transition-delay:.3s}
+.r[data-d="4"]{transition-delay:.4s}
+
+@keyframes fu{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:translateY(0)}}
+::-webkit-scrollbar{width:5px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--c3)}
+::-webkit-scrollbar-thumb:hover{background:var(--g3)}
+
+@media(max-width:1000px){
+  nav{padding:0 1.2rem}
+  .nav-links{display:none}
+  .fg-wrap{grid-template-columns:1fr 1fr}
+  .fc,.fc.c4,.fc.c6{grid-column:span 1}
+  #stats .metrics{grid-template-columns:1fr 1fr}
+  .second-row{grid-template-columns:1fr}
+  .steps-grid{grid-template-columns:1fr 1fr}
+  .cmd-layout{grid-template-columns:180px 1fr}
+}
+@media(max-width:600px){
+  .fg-wrap{grid-template-columns:1fr}
+  .steps-grid{grid-template-columns:1fr}
+  .hero-stats{flex-direction:column;border:none;gap:0}
+  .hstat{border-left:none;border-top:1px solid var(--border)}
+  .cmd-layout{grid-template-columns:1fr;height:auto}
+  .cmd-sidebar{display:flex;overflow-x:auto;height:52px}
+  .cat-btn{white-space:nowrap;border-left:none;border-bottom:3px solid transparent;flex-shrink:0}
+  .cat-btn.active{border-bottom-color:var(--c);border-left:none}
+}
+</style>
+</head>
+<body>
+<div id="cur"></div>
+<div id="cur2"></div>
+<canvas id="cv"></canvas>
+
+<!-- NAV -->
+<nav>
+  <div class="logo"><span class="logo-glow" aria-hidden="true">IDL</span><span class="logo-text">IDL</span></div>
+  <ul class="nav-links">
+    <li><a href="#features">מודולים</a></li>
+    <li><a href="#commands">פקודות</a></li>
+    <li><a href="#stats">סטטוס</a></li>
+    <li><a href="#setup">התקנה</a></li>
+  </ul>
+  <div class="nav-right">
+    <div class="nav-status"><div class="nav-dot"></div>ONLINE</div>
+    <a href="#" class="nav-invite">+ הוסף לשרת</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section id="hero">
+  <div class="grid-bg"></div>
+  <div class="hero-corner tl"></div>
+  <div class="hero-corner tr"></div>
+  <div class="hero-corner bl"></div>
+  <div class="hero-corner br"></div>
+
+  <div class="hero-pre">// ALL-IN-ONE DISCORD BOT //</div>
+  <div class="hero-sys">[SYS] BOOTING IDL_BOT_v2.4.1 <span class="sys-blink">█</span></div>
+  <h1 class="hero-title">
+    <span class="ht-idl">IDL</span>
+    <span class="ht-bot">BOT</span>
+  </h1>
+  <p class="hero-sub">
+    <span class="ac">מוזיקה · מודרציה · XP · AI · כלכלה · גיימינג</span><br>
+    בוט אחד. <span class="ag">כל הכלים</span>. ללא פשרות.
+  </p>
+  <div class="hero-stats">
+    <div class="hstat"><div class="hstat-num" data-to="5200">0</div><div class="hstat-lbl">// USERS</div></div>
+    <div class="hstat"><div class="hstat-num" data-to="58">0</div><div class="hstat-lbl">// SERVERS</div></div>
+    <div class="hstat"><div class="hstat-num" data-to="247">0</div><div class="hstat-lbl">// COMMANDS</div></div>
+    <div class="hstat"><div class="hstat-num">99.9<small style="font-size:.7rem">%</small></div><div class="hstat-lbl">// UPTIME</div></div>
+    <div class="hstat"><div class="hstat-num" data-to="1200000">0</div><div class="hstat-lbl">// MSGS/WEEK</div></div>
+  </div>
+  <div class="hero-cta">
+    <a href="#" class="btn-a">⚡ הוסף לשרת — חינם</a>
+    <a href="#commands" class="btn-b">↓ כל הפקודות</a>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section id="features" class="sec">
+  <div class="sec-inner">
+    <div class="hud-hdr r">
+      <div class="hud-hdr-bar"></div>
+      <div><h2>SYSTEM MODULES</h2><div class="hud-hdr-sub">// 6 מודולים מלאים — פיתוח Python מתקדם</div></div>
+      <div class="hud-hdr-line"></div>
+    </div>
+    <div class="fg-wrap r">
+      <div class="fc c6">
+        <div class="fc-icon g">🎵</div>
+        <div class="fc-title">MUSIC ENGINE</div>
+        <p class="fc-desc">מוזיקה באיכות הגבוהה ביותר ישירות בערוץ קול שלך. מנגן מ-YouTube, Spotify, SoundCloud ו-Apple Music עם <strong>queue ניהול מלא</strong>, bass boost, nightcore, 8D audio ועוד אפקטים.</p>
+        <ul class="fc-list">
+          <li>Playlist תמיכה מלאה + autoplay</li>
+          <li>לוח בקרה אינטרקטיבי עם כפתורים</li>
+          <li>Equalizer מובנה עם 10 פרסטים</li>
+        </ul>
+        <span class="fc-tag">LAVALINK POWERED</span>
+      </div>
+      <div class="fc c3">
+        <div class="fc-icon t">🛡️</div>
+        <div class="fc-title">MODERATION</div>
+        <p class="fc-desc">ניהול שרת מקצועי עם <strong>AutoMod חכם</strong>, סינון ספאם, anti-raid, warn system ולוגים מפורטים על כל פעולה.</p>
+        <ul class="fc-list">
+          <li>Temp-ban / timeout אוטומטי</li>
+          <li>לוג ערוץ מלא עם embed</li>
+          <li>Anti-link, anti-caps, anti-flood</li>
+        </ul>
+        <span class="fc-tag">AUTO-MOD v3</span>
+      </div>
+      <div class="fc c3">
+        <div class="fc-icon g">⚔️</div>
+        <div class="fc-title">LEVELING & XP</div>
+        <p class="fc-desc">מערכת XP מתקדמת עם <strong>לוח מובילים דינמי</strong>, תגמולי רמה, תפקידים אוטומטיים ו-rank card מותאם אישית.</p>
+        <ul class="fc-list">
+          <li>Rank card עם עיצוב מותאם</li>
+          <li>XP boost events + double XP</li>
+          <li>Role rewards per level</li>
+        </ul>
+        <span class="fc-tag">CUSTOM RANK CARDS</span>
+      </div>
+      <div class="fc c4">
+        <div class="fc-icon t">🤖</div>
+        <div class="fc-title">AI ASSISTANT</div>
+        <p class="fc-desc"><strong>AI מתקדם</strong> עם זיכרון שיחה מלא, פרסונות מותאמות לשרת, תמיכה בעברית מלאה, ניתוח תמונות וייצור תוכן.</p>
+        <ul class="fc-list">
+          <li>זיכרון שיחה לכל משתמש</li>
+          <li>Image understanding</li>
+          <li>Custom system prompts</li>
+        </ul>
+        <span class="fc-tag">GPT-4 POWERED</span>
+      </div>
+      <div class="fc c4">
+        <div class="fc-icon g">💰</div>
+        <div class="fc-title">ECONOMY SYSTEM</div>
+        <p class="fc-desc">כלכלה שלמה עם <strong>מטבע שרת</strong>, חנות מותאמת, עבודות, הימורים, שוד, העברות ולוח עשירים.</p>
+        <ul class="fc-list">
+          <li>Daily/weekly rewards</li>
+          <li>חנות items מותאמת</li>
+          <li>Gamble / blackjack / slots</li>
+        </ul>
+        <span class="fc-tag">FULL ECONOMY</span>
+      </div>
+      <div class="fc c4">
+        <div class="fc-icon t">🎭</div>
+        <div class="fc-title">GAMES & EVENTS</div>
+        <p class="fc-desc">Giveaways, trivia, polls, RPG, mini-games ו-<strong>אירועים קהילתיים</strong> — שמור על הקהילה פעילה ומחוברת.</p>
+        <ul class="fc-list">
+          <li>Auto-giveaway scheduler</li>
+          <li>Trivia עברית + אנגלית</li>
+          <li>Custom polls + vote</li>
+        </ul>
+        <span class="fc-tag">COMMUNITY TOOLS</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- COMMANDS -->
+<section id="commands" class="sec">
+  <div class="sec-inner">
+    <div class="hud-hdr r">
+      <div class="hud-hdr-bar"></div>
+      <div><h2>COMMAND INTERFACE</h2><div class="hud-hdr-sub">// 247 slash commands — בחר קטגוריה</div></div>
+      <div class="hud-hdr-line"></div>
+    </div>
+    <div class="cmd-layout r">
+      <div class="cmd-sidebar" id="catSidebar">
+        <button class="cat-btn active" data-cat="music"><span class="cat-icon">🎵</span>מוזיקה<span class="cat-count">38</span></button>
+        <button class="cat-btn" data-cat="mod"><span class="cat-icon">🛡️</span>מודרציה<span class="cat-count">42</span></button>
+        <button class="cat-btn" data-cat="xp"><span class="cat-icon">⚔️</span>XP & רמות<span class="cat-count">18</span></button>
+        <button class="cat-btn" data-cat="ai"><span class="cat-icon">🤖</span>AI<span class="cat-count">14</span></button>
+        <button class="cat-btn" data-cat="eco"><span class="cat-icon">💰</span>כלכלה<span class="cat-count">52</span></button>
+        <button class="cat-btn" data-cat="fun"><span class="cat-icon">🎭</span>גיימינג<span class="cat-count">41</span></button>
+        <button class="cat-btn" data-cat="util"><span class="cat-icon">⚙️</span>כלי עזר<span class="cat-count">42</span></button>
+      </div>
+      <div class="cmd-main" id="cmdMain">
+        <div class="cmd-topbar">
+          <div class="tdots"><div class="tdot"></div><div class="tdot"></div><div class="tdot"></div></div>
+          <div class="cmd-topbar-title" id="cmdTitle">IDL_BOT :: MUSIC_COMMANDS</div>
+          <span class="cmd-count-badge" id="cmdBadge">38 COMMANDS</span>
+        </div>
+        <div class="cmd-list-inner" id="cmdList"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- STATS -->
+<section id="stats" class="sec">
+  <div class="sec-inner">
+    <div class="hud-hdr r">
+      <div class="hud-hdr-bar"></div>
+      <div><h2>LIVE METRICS</h2><div class="hud-hdr-sub">// נתוני זמן אמת</div></div>
+      <div class="hud-hdr-line"></div>
+    </div>
+    <div class="metrics r">
+      <div class="mp"><div class="mp-label">SERVERS</div><div class="mp-val"><span data-to="58">0</span></div><div class="mp-change up">▲ +5 this month</div></div>
+      <div class="mp"><div class="mp-label">TOTAL USERS</div><div class="mp-val"><span data-to="5200">0</span></div><div class="mp-change up">▲ +340 this month</div></div>
+      <div class="mp"><div class="mp-label">UPTIME</div><div class="mp-val">99.9<span class="mp-unit">%</span></div><div class="mp-change stable">● STABLE</div></div>
+      <div class="mp"><div class="mp-label">PING AVG</div><div class="mp-val">42<span class="mp-unit">ms</span></div><div class="mp-change stable">● OPTIMAL</div></div>
+      <div class="activity">
+        <div class="mp-label">COMMANDS / DAY — LAST 7 DAYS</div>
+        <div class="bars" id="bars"></div>
+      </div>
+    </div>
+    <div class="second-row r">
+      <div class="lang-panel">
+        <div class="lang-title">TOP COMMANDS</div>
+        <div class="lang-bar-row"><span class="lang-name">/play</span><div class="lang-track"><div class="lang-fill c" style="width:88%"></div></div><span class="lang-pct">88%</span></div>
+        <div class="lang-bar-row"><span class="lang-name">/rank</span><div class="lang-track"><div class="lang-fill g" style="width:62%"></div></div><span class="lang-pct">62%</span></div>
+        <div class="lang-bar-row"><span class="lang-name">/ask</span><div class="lang-track"><div class="lang-fill c" style="width:55%"></div></div><span class="lang-pct">55%</span></div>
+        <div class="lang-bar-row"><span class="lang-name">/balance</span><div class="lang-track"><div class="lang-fill g" style="width:41%"></div></div><span class="lang-pct">41%</span></div>
+        <div class="lang-bar-row"><span class="lang-name">/ban</span><div class="lang-track"><div class="lang-fill c" style="width:28%"></div></div><span class="lang-pct">28%</span></div>
+      </div>
+      <div class="lang-panel">
+        <div class="lang-title">MODULE USAGE</div>
+        <div class="lang-bar-row"><span class="lang-name">Music</span><div class="lang-track"><div class="lang-fill g" style="width:90%"></div></div><span class="lang-pct">90%</span></div>
+        <div class="lang-bar-row"><span class="lang-name">Economy</span><div class="lang-track"><div class="lang-fill c" style="width:74%"></div></div><span class="lang-pct">74%</span></div>
+        <div class="lang-bar-row"><span class="lang-name">XP</span><div class="lang-track"><div class="lang-fill g" style="width:68%"></div></div><span class="lang-pct">68%</span></div>
+        <div class="lang-bar-row"><span class="lang-name">Moderation</span><div class="lang-track"><div class="lang-fill c" style="width:52%"></div></div><span class="lang-pct">52%</span></div>
+        <div class="lang-bar-row"><span class="lang-name">AI Chat</span><div class="lang-track"><div class="lang-fill g" style="width:44%"></div></div><span class="lang-pct">44%</span></div>
+      </div>
+      <div class="lang-panel">
+        <div class="lang-title">SERVER SIZES</div>
+        <div class="lang-bar-row"><span class="lang-name">1K+ members</span><div class="lang-track"><div class="lang-fill c" style="width:35%"></div></div><span class="lang-pct">35%</span></div>
+        <div class="lang-bar-row"><span class="lang-name">500–1K</span><div class="lang-track"><div class="lang-fill g" style="width:28%"></div></div><span class="lang-pct">28%</span></div>
+        <div class="lang-bar-row"><span class="lang-name">100–500</span><div class="lang-track"><div class="lang-fill c" style="width:22%"></div></div><span class="lang-pct">22%</span></div>
+        <div class="lang-bar-row"><span class="lang-name">&lt;100</span><div class="lang-track"><div class="lang-fill g" style="width:15%"></div></div><span class="lang-pct">15%</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SETUP -->
+<section id="setup" class="sec">
+  <div class="sec-inner">
+    <div class="hud-hdr r">
+      <div class="hud-hdr-bar"></div>
+      <div><h2>QUICK DEPLOY</h2><div class="hud-hdr-sub">// 4 שלבים להפעלה מלאה</div></div>
+      <div class="hud-hdr-line"></div>
+    </div>
+    <div class="steps-grid">
+      <div class="step r" data-d="1" data-n="01">
+        <div class="step-num">STEP 01</div>
+        <h3>הזמן את הבוט</h3>
+        <p>לחץ "הוסף לשרת", אשר הרשאות ובחר את השרת שלך ברשימה.</p>
+        <code>/invite IDLBot</code>
+      </div>
+      <div class="step r" data-d="2" data-n="02">
+        <div class="step-num">STEP 02</div>
+        <h3>הגדרות ראשוניות</h3>
+        <p>הרץ אשף אוטומטי שיגדיר ערוצי לוג, תפקיד מוד ועוד.</p>
+        <code>/setup wizard</code>
+      </div>
+      <div class="step r" data-d="3" data-n="03">
+        <div class="step-num">STEP 03</div>
+        <h3>הפעל מודולים</h3>
+        <p>בחר אילו מודולים פעילים — מוזיקה, XP, כלכלה וכו'.</p>
+        <code>/modules config</code>
+      </div>
+      <div class="step r" data-d="4" data-n="04">
+        <div class="step-num">STEP 04</div>
+        <h3>🚀 Go Live!</h3>
+        <p>הכל מוכן. הבוט פעיל ומוכן לשרת. תהנה מכל הפיצ'רים!</p>
+        <code>/help</code>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-logo">IDL</div>
+    <div class="footer-text">Built with <span>♥</span> by <span>IDL</span> · Python · discord.py · 2025<br><span style="color:var(--muted);font-size:.65rem">© IDL Bot — All Rights Reserved</span></div>
+    <div class="footer-links">
+      <a href="https://github.com" target="_blank">GitHub</a>
+      <a href="https://discord.com" target="_blank">Discord Server</a>
+      <a href="#">Docs</a>
+      <a href="#">Contact</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+/* ── CURSOR ── */
+const cur=document.getElementById('cur'),cur2=document.getElementById('cur2');
+let mx=0,my=0,cx2=0,cy2=0;
+document.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;cur.style.left=mx+'px';cur.style.top=my+'px'});
+setInterval(()=>{cx2+=(mx-cx2)*.18;cy2+=(my-cy2)*.18;cur2.style.left=cx2+'px';cur2.style.top=cy2+'px'},16);
+document.querySelectorAll('a,button,.fc,.cmd-item,.step,.mp,.cat-btn').forEach(el=>{
+  el.addEventListener('mouseenter',()=>document.body.classList.add('hovering'));
+  el.addEventListener('mouseleave',()=>document.body.classList.remove('hovering'));
+});
+
+/* ── CANVAS PARTICLES ── */
+const cv=document.getElementById('cv'),ctx=cv.getContext('2d');
+let W,H;
+const rsz=()=>{W=cv.width=innerWidth;H=cv.height=innerHeight};
+window.addEventListener('resize',rsz);rsz();
+const N=80,pts=Array.from({length:N},()=>({
+  x:Math.random()*W,y:Math.random()*H,
+  vx:(Math.random()-.5)*.35,vy:(Math.random()-.5)*.35,
+  r:Math.random()*1.4+.3,
+  c:Math.random()<.6?'#006d87':'#cc8800',
+  a:Math.random()*.55+.1,
+  pulse:Math.random()*Math.PI*2
+}));
+let t=0;
+(function draw(){
+  ctx.clearRect(0,0,W,H);t+=.012;
+  pts.forEach(p=>{
+    p.pulse+=.018;
+    const pa=p.a*(0.7+0.3*Math.sin(p.pulse));
+    ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+    ctx.fillStyle=p.c;ctx.globalAlpha=pa;ctx.fill();
+    p.x+=p.vx;p.y+=p.vy;
+    if(p.x<0)p.x=W;if(p.x>W)p.x=0;
+    if(p.y<0)p.y=H;if(p.y>H)p.y=0;
+  });
+  for(let i=0;i<N;i++)for(let j=i+1;j<N;j++){
+    const dx=pts[i].x-pts[j].x,dy=pts[i].y-pts[j].y,d=Math.hypot(dx,dy);
+    if(d<120){ctx.beginPath();ctx.moveTo(pts[i].x,pts[i].y);ctx.lineTo(pts[j].x,pts[j].y);ctx.strokeStyle='#00b4d8';ctx.globalAlpha=(1-d/120)*.07;ctx.lineWidth=.5;ctx.stroke()}
+  }
+  ctx.globalAlpha=1;requestAnimationFrame(draw);
+})();
+
+/* ── BAR CHART ── */
+const barsEl=document.getElementById('bars');
+const barData=[{v:3200,d:'Sun'},{v:5100,d:'Mon'},{v:4400,d:'Tue'},{v:7800,d:'Wed'},{v:6200,d:'Thu'},{v:9100,d:'Fri'},{v:8400,d:'Sat'}];
+const bmax=Math.max(...barData.map(b=>b.v));
+barData.forEach((b,i)=>{
+  const w=document.createElement('div');w.className='bar-wrap';
+  const bar=document.createElement('div');bar.className='bar';
+  bar.style.height=(b.v/bmax*100)+'%';bar.style.animationDelay=(i*.1)+'s';
+  const lbl=document.createElement('div');lbl.className='bar-day';lbl.textContent=b.d;
+  w.appendChild(bar);w.appendChild(lbl);barsEl.appendChild(w);
+});
+
+/* ── COMMAND DATA ── */
+const cmds={
+  music:[
+    {n:'play',a:'<שיר/URL>',d:'מנגן שיר מ-YouTube, Spotify, SoundCloud או Apple Music',b:'hot'},
+    {n:'pause',a:'',d:'עוצר את הנגינה הנוכחית'},
+    {n:'resume',a:'',d:'ממשיך נגינה שעוצרה'},
+    {n:'skip',a:'[מספר]',d:'מדלג על השיר הנוכחי, אפשר לדלג כמה שירים קדימה'},
+    {n:'queue',a:'',d:'מציג את תור השירים המלא עם embed אינטרקטיבי'},
+    {n:'nowplaying',a:'',d:'מציג את השיר הנוכחי עם progress bar'},
+    {n:'volume',a:'<1-150>',d:'מכוון את עוצמת הקול של הבוט'},
+    {n:'loop',a:'[off/track/queue]',d:'מפעיל לולאה על השיר הנוכחי או כל התור'},
+    {n:'shuffle',a:'',d:'מערבב את תור השירים בצורה אקראית'},
+    {n:'stop',a:'',d:'עוצר נגינה ומנקה את כל התור'},
+    {n:'seek',a:'<זמן>',d:'קופץ לנקודה מסוימת בשיר — לדוגמה 2:30',b:'new'},
+    {n:'bass',a:'<0-5>',d:'מגביר בסים — 5 רמות עוצמה שונות'},
+    {n:'nightcore',a:'',d:'מפעיל אפקט nightcore על השיר הנוכחי',b:'new'},
+    {n:'8d',a:'',d:'מפעיל אפקט 8D audio מדהים'},
+  ],
+  mod:[
+    {n:'ban',a:'<משתמש> [סיבה]',d:'חוסם משתמש מהשרת עם לוג אוטומטי',b:''},
+    {n:'kick',a:'<משתמש> [סיבה]',d:'מסיר משתמש מהשרת'},
+    {n:'mute',a:'<משתמש> <זמן>',d:'משתיק משתמש לזמן מוגדר — 10m, 2h, 1d'},
+    {n:'warn',a:'<משתמש> <סיבה>',d:'נותן אזהרה למשתמש, נשמר בהיסטוריה'},
+    {n:'warnings',a:'<משתמש>',d:'מציג את כל האזהרות של משתמש'},
+    {n:'clearwarn',a:'<משתמש>',d:'מנקה את כל האזהרות של משתמש'},
+    {n:'purge',a:'<כמות>',d:'מוחק הודעות בכמות שנבחרה — עד 100'},
+    {n:'slowmode',a:'<שניות>',d:'מגדיר מצב איטי לערוץ'},
+    {n:'lock',a:'[ערוץ]',d:'נועל ערוץ — לא ניתן לכתוב'},
+    {n:'unlock',a:'[ערוץ]',d:'פותח ערוץ שנעול'},
+    {n:'automod',a:'',d:'הגדרות AutoMod — anti-spam, anti-link, anti-caps',b:'new'},
+    {n:'antinuke',a:'',d:'הגנה מפני nukes — מגביל פעולות מסוכנות',b:'new'},
+  ],
+  xp:[
+    {n:'rank',a:'[@משתמש]',d:'מציג rank card עם XP, רמה ודירוג בשרת'},
+    {n:'leaderboard',a:'',d:'לוח מובילים של כל השרת ממויין לפי XP'},
+    {n:'setxp',a:'<משתמש> <כמות>',d:'קובע XP ידנית למשתמש (אדמין)'},
+    {n:'givexp',a:'<משתמש> <כמות>',d:'מוסיף XP למשתמש (אדמין)'},
+    {n:'xpmultiplier',a:'<x>',d:'מגדיר מכפיל XP לכל השרת'},
+    {n:'levelroles',a:'',d:'הגדרת תפקידים אוטומטיים לפי רמות'},
+    {n:'xpblacklist',a:'<ערוץ/תפקיד>',d:'מונע XP מערוצים או תפקידים מסוימים'},
+  ],
+  ai:[
+    {n:'ask',a:'<שאלה>',d:'שאל את ה-AI — תשובות חכמות בעברית ואנגלית',b:'ai'},
+    {n:'chat',a:'',d:'פותח שיחת AI עם זיכרון מלא',b:'ai'},
+    {n:'imagine',a:'<תיאור>',d:'יוצר תמונה מתיאור טקסטואלי עם DALL-E',b:'ai'},
+    {n:'summarize',a:'<טקסט>',d:'מסכם טקסט ארוך לנקודות עיקריות',b:'ai'},
+    {n:'translate',a:'<טקסט> <שפה>',d:'מתרגם טקסט לכל שפה תוך שניות'},
+    {n:'persona',a:'<שם>',d:'מחליף את אישיות ה-AI לפרסונה מותאמת',b:'new'},
+  ],
+  eco:[
+    {n:'balance',a:'[@משתמש]',d:'מציג יתרת מטבעות וסטטיסטיקות',b:''},
+    {n:'daily',a:'',d:'קבל מטבעות יומיים — streak bonus עד x7'},
+    {n:'weekly',a:'',d:'בונוס שבועי גדול יותר'},
+    {n:'work',a:'',d:'עבוד וקבל מטבעות — cooldown 1 שעה'},
+    {n:'crime',a:'',d:'נסה לבצע פשע — סיכון גבוה, רווח גבוה'},
+    {n:'rob',a:'<משתמש>',d:'נסה לגנוב ממשתמש אחר'},
+    {n:'pay',a:'<משתמש> <סכום>',d:'העברת מטבעות למשתמש אחר'},
+    {n:'shop',a:'',d:'פותח את חנות השרת עם כל הפריטים'},
+    {n:'buy',a:'<פריט>',d:'קנה פריט מהחנות'},
+    {n:'inventory',a:'',d:'הצג את כל הפריטים שלך'},
+    {n:'gamble',a:'<סכום>',d:'הימור — 50/50 לכפול או לאבד'},
+    {n:'blackjack',a:'<סכום>',d:'משחק בלאק ג\'ק מלא מול הבוט',b:'hot'},
+    {n:'slots',a:'<סכום>',d:'מכונת מזל — 3 תוצאות אקראיות'},
+    {n:'leaderboard',a:'',d:'לוח העשירים של השרת'},
+  ],
+  fun:[
+    {n:'giveaway',a:'<פרס> <זמן>',d:'מתחיל הגרלה עם ספירה לאחור ובחירת זוכה',b:'hot'},
+    {n:'trivia',a:'[קטגוריה]',d:'שאלות טריוויה בעברית ואנגלית'},
+    {n:'poll',a:'<שאלה> <אפשרויות>',d:'יוצר סקר עם בחירה מרובה'},
+    {n:'rps',a:'<גורל/אבן/מספריים>',d:'משחק "אבן, נייר, מספריים" מול הבוט'},
+    {n:'8ball',a:'<שאלה>',d:'שאל את כדור הקסם 8'},
+    {n:'meme',a:'',d:'שולח מם אקראי מ-Reddit'},
+    {n:'coinflip',a:'',d:'הטלת מטבע — heads or tails'},
+    {n:'dice',a:'[XdY]',d:'הטלת קוביות — תמיכה ב-DnD notation'},
+  ],
+  util:[
+    {n:'help',a:'[פקודה]',d:'מציג את כל הפקודות או עזרה לפקודה ספציפית'},
+    {n:'ping',a:'',d:'בודק latency של הבוט לדיסקורד'},
+    {n:'serverinfo',a:'',d:'מידע מפורט על השרת הנוכחי'},
+    {n:'userinfo',a:'[@משתמש]',d:'מידע מפורט על משתמש'},
+    {n:'avatar',a:'[@משתמש]',d:'מציג תמונת פרופיל במלוא הגודל'},
+    {n:'remind',a:'<זמן> <הודעה>',d:'מגדיר תזכורת אישית'},
+    {n:'afk',a:'[סיבה]',d:'הגדרת סטטוס AFK — מודיע לאחרים'},
+    {n:'embed',a:'',d:'יוצר embed מותאם אישית בערוץ',b:'new'},
+    {n:'ticket',a:'',d:'פותח כרטיס תמיכה פרטי עם הצוות'},
+    {n:'roles',a:'',d:'תפריט בחירת תפקידים עצמאי'},
+  ]
+};
+
+const titles={music:'MUSIC_COMMANDS',mod:'MODERATION_COMMANDS',xp:'XP_COMMANDS',ai:'AI_COMMANDS',eco:'ECONOMY_COMMANDS',fun:'FUN_COMMANDS',util:'UTILITY_COMMANDS'};
+const counts={music:38,mod:42,xp:18,ai:14,eco:52,fun:41,util:42};
+
+function renderCmds(cat){
+  const list=cmds[cat];
+  const el=document.getElementById('cmdList');
+  el.innerHTML=list.map(c=>`
+    <div class="cmd-item">
+      <span class="cmd-slash">/</span>
+      <div class="cmd-info">
+        <div><span class="cmd-name">${c.n}</span><span class="cmd-args" style="color:var(--muted);font-size:.78rem"> ${c.a||''}</span></div>
+        <div class="cmd-desc">${c.d}</div>
+      </div>
+      ${c.b?`<span class="cmd-badge cb-${c.b}">${c.b.toUpperCase()}</span>`:'<span></span>'}
+    </div>`).join('');
+  document.getElementById('cmdTitle').textContent=`IDL_BOT :: ${titles[cat]}`;
+  document.getElementById('cmdBadge').textContent=`${counts[cat]} COMMANDS`;
+}
+renderCmds('music');
+document.getElementById('catSidebar').addEventListener('click',e=>{
+  const btn=e.target.closest('.cat-btn');if(!btn)return;
+  document.querySelectorAll('.cat-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderCmds(btn.dataset.cat);
+  document.getElementById('cmdList').style.opacity=0;
+  setTimeout(()=>{document.getElementById('cmdList').style.opacity=1},50);
+});
+
+/* ── COUNTERS ── */
+function countUp(el,to){
+  let n=0;const s=to/60;
+  const t=setInterval(()=>{
+    n+=s;if(n>=to){n=to;clearInterval(t)}
+    el.textContent=to>=10000?Math.floor(n).toLocaleString()+'+':(Math.floor(n).toLocaleString());
+  },20);
+}
+const co=new IntersectionObserver(es=>{
+  es.forEach(e=>{if(e.isIntersecting){countUp(e.target,+e.target.dataset.to);co.unobserve(e.target)}});
+},{threshold:.4});
+document.querySelectorAll('[data-to]').forEach(el=>co.observe(el));
+
+/* ── REVEAL ── */
+const io=new IntersectionObserver(es=>{
+  es.forEach(e=>{if(e.isIntersecting)e.target.classList.add('on')});
+},{threshold:.08});
+document.querySelectorAll('.r').forEach(el=>io.observe(el));
+</script>
+</body>
+</html>
